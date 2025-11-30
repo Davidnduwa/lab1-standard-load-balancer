@@ -107,3 +107,14 @@ Basic IP ⟶ ❌ Cannot join Standard LB backend
 ✔ Basic SKU Public IP cannot be upgraded to Standard
 
 You must create a new Standard IP.
+
+
+This lab demonstrates the fundamental rules behind Azure load balancer backend membership:
+
+Only Standard IPs can join Standard LBs
+
+Basic SKUs are deprecated but still important for exam questions and legacy systems
+
+VM state does NOT impact backend pool eligibility
+
+SKU mismatch is the #1 reason VMs fail to join backend pools
