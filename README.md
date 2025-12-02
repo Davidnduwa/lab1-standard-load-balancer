@@ -1,120 +1,110 @@
-Standard Load Balancer, IP SKUs & Backend Pools (Updated 2025)
+This lab guide is excellent, especially the inclusion of the 2025 retirement update and the clear breakdown of the SKU compatibility rules.
 
-This lab demonstrates how Azure Standard Load Balancers interact with different Public IP SKUs and how backend pool selection depends on SKU compatibility—not VM power state.
+-----
 
+# 🛡️ LAB 5 – Azure Standard Load Balancer, IP SKUs & Backend Pools
 
-📘 Architecture Diagram
+This lab demonstrates the critical compatibility rules governing the **Azure Standard Load Balancer**. Specifically, we explore how **Public IP SKUs** dictate which Virtual Machines (VMs) are eligible to join a Standard Load Balancer's backend pool, regardless of the VM's power state.
 
-                     Internet
-                         │
-                         ▼
-       ┌───────────────────────────────────┐
-       │ Standard Public IP (pip-lb-front) │
-       └───────────────────┬───────────────┘
-                           │
-                           ▼
-                ┌──────────────────────────┐
-                │  Standard Load Balancer   │
-                │        (lb-standard)      │
-                └─────────────┬────────────┘
+## 🎯 Lab Goals
+
+  * Create an Azure **Standard Load Balancer**.
+  * Deploy VMs with a mix of **Standard**, **Basic**, and **No Public IP** SKUs.
+  * Attempt to add all VMs to the Standard Load Balancer's backend pool.
+  * Validate that **Basic SKU Public IPs** cannot join a Standard Load Balancer.
+  * Confirm that a VM's **power state** (Running vs. Stopped) does not affect eligibility.
+
+-----
+
+## 📘 Architecture Diagram
+
+The Standard Load Balancer requires Standard SKU components for all front-end and back-end resources that utilize a Public IP.
+
+```
+                      Internet
+                          │
+                          ▼
+        ┌───────────────────────────────────┐
+        │ Standard Public IP (pip-lb-front) │
+        └───────────────────┬───────────────┘
+                            │
+                            ▼
+                  ┌──────────────────────────┐
+                  │  Standard Load Balancer  │
+                  │      (lb-standard)       │
+                  └─────────────┬────────────┘
                               │
-             ┌────────────────┴────────────────┐
-             ▼                                 ▼                      
-    Allowed in Backend Pool           NOT Allowed in Backend Pool  
-    (Standard SKU or No IP)            (Basic Public IP SKU)
+            ┌─────────────────┴─────────────────┐
+            ▼                                   ▼
+  ✅ Allowed in Backend Pool           ❌ NOT Allowed in Backend Pool
+  (Standard SKU or No IP)               (Basic Public IP SKU)
+```
 
+-----
 
+## ⚠️ Important Azure Update 
 
----------------------------------------------------------------------------------------------
-🎯 Goal of This Lab
+While this lab uses the Basic SKU to illustrate compatibility rules, note that the **Basic Public IP** and **Basic Load Balancer** SKUs were **retired on September 30, 2025** (originally April 24, 2025, but this is the latest in 2025).
 
-Create a Standard Load Balancer
+  * **You cannot create new Basic SKUs** in the portal or using modern tools.
+  * **Legacy systems and exam questions** may still reference Basic SKUs, making the compatibility rule critical knowledge.
+  * **Recommendation:** Use **Standard SKU** for all new deployments.
 
-Create Basic and Standard Public IPs
+| Deprecated | Modern Alternative |
+| :--- | :--- |
+| Basic Public IP | Standard Public IP |
+| Basic Load Balancer | Standard Load Balancer |
 
-Deploy 4 VMs with different IP SKUs
+-----
 
-Attempt to add each VM to a backend pool
+## 🛠️ Environment Setup
 
-Understand why Basic SKU IPs cannot join a Standard LB
+| Component | Name / Range |
+| :--- | :--- |
+| **VNet** | `vnet-lb-lab` (`10.10.0.0/16`) |
+| **Subnet 1** | `subnet1` (`10.10.1.0/24`) |
+| **Subnet 2** | `subnet2` (`10.10.2.0/24`) |
+| **Load Balancer** | `lb-standard` (Standard SKU) |
+| **Frontend IP** | `pip-lb-front` (Standard SKU) |
 
-Observe that VM power state does not matter (Running vs Stopped)
+### Virtual Machines
 
-🛠️ Environment Setup
-VNet
-Name	Address Space
-vnet-lb-lab	10.10.0.0/16
-Subnets
-Subnet	Range
-subnet1	10.10.1.0/24
-subnet2	10.10.2.0/24
-Virtual Machines
-VM Name	Subnet	Public IP SKU	Power State	Backend Pool?
-vm-lb1	subnet1	None	Running	✅ Allowed
-vm-lb2	subnet2	Standard	Stopped (deallocated)	✅ Allowed
-vm-lb3	subnet1	Standard	Running	✅ Allowed
-vm-lb4	subnet2	Basic	Stopped (deallocated)	❌ Not allowed
-⚠️ Important Azure Update (2025)
-Basic Public IP and Basic Load Balancer have been officially retired by Microsoft (April 24, 2025).
+| VM Name | Subnet | Public IP SKU | Power State | Backend Pool Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **vm-lb1** | `subnet1` | **None** | Running | **✅ Allowed** |
+| **vm-lb2** | `subnet2` | **Standard** | Stopped (Deallocated) | **✅ Allowed** |
+| **vm-lb3** | `subnet1` | **Standard** | Running | **✅ Allowed** |
+| **vm-lb4** | `subnet2` | **Basic** | Stopped (Deallocated) | **❌ Not allowed** |
 
-This means:
+-----
 
-You cannot create new Basic SKUs
+## ⚙️ Steps Performed
 
-Existing Basic SKUs may still appear on exams and legacy systems
+1.  Created VNet and subnets.
+2.  Deployed four VMs (`vm-lb1` through `vm-lb4`) with the specified Public IP SKUs.
+3.  Manually **stopped (deallocated)** `vm-lb2` and `vm-lb4`.
+4.  Created the **Standard Load Balancer** (`lb-standard`) and its **Standard Public IP** (`pip-lb-front`).
+5.  Attempted to add all four VMs (by NIC) to the Load Balancer's backend pool.
+6.  Validated the resulting membership status.
 
-Azure recommends upgrading to Standard SKUs for all new deployments
+## 🧠 Key Takeaways & Rules
 
-✔ Recommended Modern Replacement
-Deprecated	Modern Alternative
-Basic Public IP	Standard Public IP
-Basic Load Balancer	Standard Load Balancer
+This lab reinforces the fundamental rules for Azure Load Balancer backend membership:
 
-This lab still teaches the SKU compatibility principle, which remains valid.
+1.  **SKU Compatibility is Mandatory:**
 
-⚙️ Steps Performed
+      * The **Standard Load Balancer** is fundamentally incompatible with the **Basic Public IP SKU**.
+      * **Standard LB ⟷ Standard Public IP**. A Basic Public IP on a VM NIC will prevent that NIC from joining a Standard LB backend pool.
+      * **Note:** A Basic SKU Public IP **cannot** be upgraded to Standard; you must create a new Standard IP resource.
 
-Created VNet + subnets
+2.  **VM Power State is Irrelevant:**
 
-Deployed 4 VMs with mixed public IP SKUs
+      * The VM's power state (**Running**, **Stopped**, or **Deallocated**) has **NO** impact on its eligibility for backend pool membership. The membership is determined solely by the properties of the associated **Network Interface Card (NIC)** and its attached resources (like the Public IP SKU).
 
-Stopped VM2 and VM4 (deallocated)
+3.  **VMs without Public IPs are Eligible:**
 
-Created Standard Load Balancer (lb-standard)
+      * VMs that have **no Public IP** attached (`vm-lb1`) can successfully join a Public Load Balancer's backend pool. The Load Balancer directs traffic to the VM's private IP address via the NIC.
 
-Created Standard Public IP (pip-lb-front)
+> **Conclusion:** **SKU mismatch** is the **\#1 reason** why VMs fail to join a Standard Load Balancer backend pool.
 
-Attempted to add VMs to backend pool
-
-Documented which ones were allowed vs blocked
-
-Validated SKU rules + VM state impact
-
-🧠 What You Should Understand
-✔ VM power state does not matter
-
-Stopped, deallocated, or running — all can join a backend pool.
-
-✔ VMs without a Public IP can still join a Public LB backend
-
-Backend pool membership is internal via NIC, not the Public IP.
-
-✔ Public IP SKU must match the Load Balancer SKU
-
-Standard LB ⟷ Standard Public IP
-Basic IP ⟶ ❌ Cannot join Standard LB backend
-
-✔ Basic SKU Public IP cannot be upgraded to Standard
-
-You must create a new Standard IP.
-
-
-This lab demonstrates the fundamental rules behind Azure load balancer backend membership:
-
-Only Standard IPs can join Standard LBs
-
-Basic SKUs are deprecated but still important for exam questions and legacy systems
-
-VM state does NOT impact backend pool eligibility
-
-SKU mismatch is the #1 reason VMs fail to join backend pools
+-----
